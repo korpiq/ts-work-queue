@@ -1,0 +1,22 @@
+{
+  "name": "ts-work-queues",
+  "version": "1.0.0",
+  "license": "MIT",
+  "description": "Control jobs with queues for different resources with specific limits on concurrency without deadlocks.",
+  "type": "module",
+  "scripts": {
+    "test": "jest --verbose test"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "/dist"
+  ],
+  "devDependencies": {
+    "@types/jest": "^29.5.2",
+    "jest": "^29.5.0",
+    "ts-jest": "^29.1.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.1.3"
+  }
+}
