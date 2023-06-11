@@ -47,13 +47,19 @@ class Queue {
         return this.emptying?.promise ?? Promise.resolve()
     }
 
-    queue(job: Function) {
+    append(job: Function) {
         this.waiting.push(job)
+        this.start()
+        return this
+    }
+
+    prepend(job: Function) {
+        this.waiting.unshift(job)
         this.start()
         return this
     }
 }
 
 export function queue(job: Function) {
-    return new Queue().queue(job)
+    return new Queue().append(job)
 }

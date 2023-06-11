@@ -29,11 +29,17 @@ Jobs added to a `Queue` object will be run one after the other.
 
 Returns a new `Queue` that does nothing by itself.
 
-#### `queue(callable): Queue`
+#### `append(callable): Queue`
 
-Adds given `callable` as a job to the queue.
+Adds given `callable` as a job to the end of the queue.
 Starts running it if the queue is currently not running anything.
-Otherwise each queued job will be run one after the other.
+Otherwise, each queued job will be run one after the other.
+
+#### `prepend(callable): Queue`
+
+Adds given `callable` as a job to the beginning of the queue.
+Starts running it if the queue is currently not running anything.
+Otherwise, each queued job will be run one after the other.
 
 #### `async untilEmpty(): Promise<unknown>`
 

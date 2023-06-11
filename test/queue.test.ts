@@ -10,8 +10,16 @@ describe('queue', () => {
 
     it('executes two given functions consecutively.',  () => {
         let results = [];
-        queue(async () => { await new Promise((resolve) => { setTimeout(() => resolve(results.push(1))) }) })
-            .queue(() => results.push(2))
-            .queue(() => expect(results).toEqual([1, 2])) // second job waited for first one to finish
+        queue(async () => { await new Promise((resolve) => { setTimeout(() => resolve(results.push(1)), 50) }) })
+            .append(() => results.push(2))
+            .append(() => expect(results).toEqual([1, 2])) // second job waited for first one to finish
+    })
+
+    it('executes prepended job before appended one.',  () => {
+        let results = [];
+        queue(async () => { await new Promise((resolve) => { setTimeout(() => resolve(results.push(1)), 50) }) })
+          .append(() => results.push(2))
+          .prepend(() => results.push(3))
+          .append(() => expect(results).toEqual([1, 3, 2])) // prepended job executed before rest of queue.
     })
 });
