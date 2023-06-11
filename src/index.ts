@@ -1,50 +1,79 @@
+interface QueueConfiguration {
+    maxConcurrent: number
+}
+
 class Queue {
+    static defaultConfiguration: QueueConfiguration = {
+        maxConcurrent: 1
+    }
+    private configuration: QueueConfiguration
     private waiting: Function[] = []
-    private running: null | {
+    private running: {
         callable: Function
         promise: Promise<unknown>
-    } = null
-    private emptying: null | {
+    }[] = []
+    private allJobsDone: null | {
         resolve: Function
         promise: Promise<unknown>
     } = null
 
+    constructor(configuration?: Partial<QueueConfiguration>) {
+        this.configuration = { ...Queue.defaultConfiguration }
+        if (configuration) {
+            this.configure(configuration)
+        }
+    }
+
+
+    configure (configurationChanges: Partial<QueueConfiguration>) {
+        this.configuration = { ...this.configuration, ...configurationChanges }
+    }
+
     start () {
-        if (! this.running) {
-            this.next()
+        while (this.waiting.length && this.running.length < this.configuration.maxConcurrent) {
+            this.runNextJob()
         }
         return this
     }
 
-    private next () {
+    private runNextJob () {
         const callable = this.waiting.shift()
         if (callable) {
-            if (!this.emptying) {
-                let resolve: null | Function = null
-                const promise = new Promise((resolver) => resolve = resolver)
-                this.emptying = {
-                    resolve,
-                    promise
-                }
-            }
-            this.running = {
+            this.createAllJobsDonePromise()
+            const runner = {
                 callable,
                 promise: new Promise(async (resolve) => {
                     const result: unknown = await callable()
-                    this.next()
+                    const runnerIndex = this.running.indexOf(runner)
+                    if (runnerIndex > -1) {
+                        this.running.splice(runnerIndex, 1)
+                        if (!(this.running.length || this.waiting.length)) {
+                            this.allJobsDone?.resolve()
+                            this.allJobsDone = null
+                        }
+                    }
+                    this.runNextJob()
                     resolve(result)
                 })
             }
-        } else {
-            this.running = null
-            this.emptying?.resolve()
-            this.emptying = null
+            this.running.push(runner)
+        }
+    }
+
+    createAllJobsDonePromise () {
+        if (!this.allJobsDone) {
+            let resolve: null | Function = null
+            const promise = new Promise((resolver) => resolve = resolver)
+            this.allJobsDone = {
+                resolve,
+                promise
+            }
         }
     }
 
     untilEmpty (): Promise<unknown> {
         this.start()
-        return this.emptying?.promise ?? Promise.resolve()
+        return this.allJobsDone?.promise ?? Promise.resolve()
     }
 
     append(job: Function) {
@@ -60,6 +89,6 @@ class Queue {
     }
 }
 
-export function queue(job: Function) {
-    return new Queue().append(job)
+export function queue(job: Function, configuration?: Partial<QueueConfiguration>) {
+    return new Queue(configuration).append(job)
 }
