@@ -17,17 +17,21 @@ await q.untilEmpty()
 // results = ['this will run first', 'this will run after first']
 ```
 
-### `queue(callable): Queue`
+### `queue(callable, [QueueConfiguration]): Queue`
 
-Returns a new `Queue` object that runs `callable` as its first job.
+Returns a new `Queue` object (with optional custom configuration) that runs `callable` as its first job.
 
 ### `class Queue`
 
 Jobs added to a `Queue` object will be run one after the other.
 
-#### `new Queue(): Queue`
+#### `new Queue([QueueConfiguration]): Queue`
 
 Returns a new `Queue` that does nothing by itself.
+
+#### QueueConfiguration
+
+- `maxConcurrent` how many jobs may run concurrently; default is 1.
 
 #### `append(callable): Queue`
 
