@@ -42,7 +42,7 @@ class Queue {
 
     start () {
         while (this.waiting.length && this.running.length < this.configuration.maxConcurrent) {
-            this.runNextJob()
+            this.startNextJob()
         }
         return this
     }
@@ -52,7 +52,7 @@ class Queue {
         return this.allJobsDone?.promise ?? Promise.resolve()
     }
 
-    private runNextJob () {
+    private startNextJob () {
         const callable = this.waiting.shift()
         if (callable) {
             this.createAllJobsDonePromise()
@@ -68,7 +68,7 @@ class Queue {
                             this.allJobsDone = null
                         }
                     }
-                    this.runNextJob()
+                    this.startNextJob()
                     resolve(result)
                 })
             }
