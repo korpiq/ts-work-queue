@@ -24,9 +24,20 @@ class Queue {
         }
     }
 
-
     configure (configurationChanges: Partial<QueueConfiguration>) {
         this.configuration = { ...this.configuration, ...configurationChanges }
+    }
+
+    append(job: Function) {
+        this.waiting.push(job)
+        this.start()
+        return this
+    }
+
+    prepend(job: Function) {
+        this.waiting.unshift(job)
+        this.start()
+        return this
     }
 
     start () {
@@ -34,6 +45,11 @@ class Queue {
             this.runNextJob()
         }
         return this
+    }
+
+    allDone (): Promise<unknown> {
+        this.start()
+        return this.allJobsDone?.promise ?? Promise.resolve()
     }
 
     private runNextJob () {
@@ -60,7 +76,7 @@ class Queue {
         }
     }
 
-    createAllJobsDonePromise () {
+    private createAllJobsDonePromise () {
         if (!this.allJobsDone) {
             let resolve: null | Function = null
             const promise = new Promise((resolver) => resolve = resolver)
@@ -69,23 +85,6 @@ class Queue {
                 promise
             }
         }
-    }
-
-    untilEmpty (): Promise<unknown> {
-        this.start()
-        return this.allJobsDone?.promise ?? Promise.resolve()
-    }
-
-    append(job: Function) {
-        this.waiting.push(job)
-        this.start()
-        return this
-    }
-
-    prepend(job: Function) {
-        this.waiting.unshift(job)
-        this.start()
-        return this
     }
 }
 

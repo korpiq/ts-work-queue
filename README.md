@@ -41,6 +41,6 @@ Adds given `callable` as a job to the beginning of the queue.
 Starts running it if the queue is currently not running anything.
 Otherwise, each queued job will be run one after the other.
 
-#### `async untilEmpty(): Promise<unknown>`
+#### `async allDone(): Promise<unknown>`
 
 Returns a promise that resolves as soon as there are no more jobs running in the queue.

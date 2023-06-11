@@ -1,7 +1,6 @@
 import 'jest'
 import { queue } from '../src'
 
-
 describe('Queue with default configuration', () => {
     let results = []
     const slowJob = (result) => async () => {
@@ -11,7 +10,7 @@ describe('Queue with default configuration', () => {
 
     it('runs given job immediately.', async () => {
         let executed = 0
-        await queue(() => executed += 1).untilEmpty()
+        await queue(() => executed += 1).allDone()
         expect(executed).toBe(1) // times given job was executed
     })
 
@@ -19,7 +18,7 @@ describe('Queue with default configuration', () => {
         results = [];
         await queue(slowJob(1))
             .append(() => results.push(2))
-            .untilEmpty()
+            .allDone()
         expect(results).toEqual([1, 2]) // second job waited for first one to finish
     })
 
@@ -28,7 +27,7 @@ describe('Queue with default configuration', () => {
         await queue(slowJob(1))
           .append(() => results.push(2))
           .prepend(() => results.push(3))
-          .untilEmpty()
+          .allDone()
         expect(results).toEqual([1, 3, 2]) // prepended job executed before rest of queue.
     })
 });
@@ -45,7 +44,7 @@ describe('Queue running two jobs simultaneously', () => {
         await queue(slowJob(1), { maxConcurrent: 2 })
           .append(() => results.push(2))
           .prepend(() => results.push(3))
-          .untilEmpty()
+          .allDone()
         expect(results).toEqual([2, 3, 1]) // Fast second job finishes first, then third one; slow first one finishes last.
     })
 });
