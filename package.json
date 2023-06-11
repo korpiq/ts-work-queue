@@ -5,7 +5,7 @@
   "description": "Control jobs with queues for different resources with specific limits on concurrency without deadlocks.",
   "type": "module",
   "scripts": {
-    "test": "jest --verbose test"
+    "test": "jest --verbose test \"$@\""
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
