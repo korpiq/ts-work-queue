@@ -1,86 +1,117 @@
-interface QueueConfiguration {
-    maxConcurrent: number
+export interface QueueConfiguration<InputType, OutputType> {
+    maxConcurrent: number;
+    processor: (item: InputType) => OutputType;
 }
 
-class Queue {
-    static defaultConfiguration: QueueConfiguration = {
-        maxConcurrent: 1
-    }
-    private configuration: QueueConfiguration
-    private waiting: Function[] = []
-    private running: {
-        callable: Function
-        promise: Promise<unknown>
-    }[] = []
-    private allJobsDone: null | {
-        resolve: Function
-        promise: Promise<unknown>
-    } = null
+export interface Processing<InputType, OutputType> {
+    item: InputType
+    promise: Promise<OutputType>
+}
 
-    constructor(configuration?: Partial<QueueConfiguration>) {
-        this.configuration = { ...Queue.defaultConfiguration }
+interface Done {
+    resolve: () => void
+    promise: Promise<void>
+}
+
+export class Queue<InputType, OutputType> {
+    private configuration: QueueConfiguration<InputType, OutputType>
+    private waiting: InputType[] = []
+    private processing: Processing<InputType, OutputType>[] = []
+    private completionTracker: null | Done = null
+
+    private getTypeDependentDefaultConfiguration (): QueueConfiguration<InputType, OutputType> {
+        return {
+            maxConcurrent: 1,
+            processor: (item: InputType) => {
+                return (typeof item === 'function' ? item() : item) as OutputType
+            },
+        }
+    }
+
+    constructor(configuration?: Partial<QueueConfiguration<InputType, OutputType>>) {
+        this.configuration = this.getTypeDependentDefaultConfiguration()
         if (configuration) {
             this.configure(configuration)
         }
     }
 
-    configure (configurationChanges: Partial<QueueConfiguration>) {
+    configure (configurationChanges: Partial<QueueConfiguration<InputType, OutputType>>) {
         this.configuration = { ...this.configuration, ...configurationChanges }
     }
 
-    append(job: Function) {
-        this.waiting.push(job)
+    append(item: InputType) {
+        this.waiting.push(item)
         this.start()
         return this
     }
 
-    prepend(job: Function) {
-        this.waiting.unshift(job)
+    prepend(item: InputType) {
+        this.waiting.unshift(item)
         this.start()
         return this
     }
 
     start () {
-        while (this.waiting.length && this.running.length < this.configuration.maxConcurrent) {
+        while (this.waiting.length && this.processing.length < this.configuration.maxConcurrent) {
             this.startNextJob()
         }
         return this
     }
 
-    allDone (): Promise<unknown> {
-        this.start()
-        return this.allJobsDone?.promise ?? Promise.resolve()
+    isAllDone() {
+        return !(this.processing.length || this.waiting.length);
     }
 
-    private startNextJob () {
-        const callable = this.waiting.shift()
-        if (callable) {
-            this.createAllJobsDonePromise()
-            const runner = {
-                callable,
-                promise: new Promise(async (resolve) => {
-                    const result: unknown = await callable()
-                    const runnerIndex = this.running.indexOf(runner)
-                    if (runnerIndex > -1) {
-                        this.running.splice(runnerIndex, 1)
-                        if (!(this.running.length || this.waiting.length)) {
-                            this.allJobsDone?.resolve()
-                            this.allJobsDone = null
-                        }
-                    }
-                    this.startNextJob()
-                    resolve(result)
-                })
-            }
-            this.running.push(runner)
+    allDone (): Promise<void> {
+        this.start()
+        return this.completionTracker?.promise ?? Promise.resolve()
+    }
+
+    private async process (item: InputType) {
+        return this.configuration.processor(item);
+    }
+
+    private processedAllItems() {
+        this.completionTracker?.resolve()
+        this.completionTracker = null
+    }
+
+    private checkAllDone() {
+        if (this.isAllDone()) {
+            this.processedAllItems()
         }
     }
 
-    private createAllJobsDonePromise () {
-        if (!this.allJobsDone) {
-            let resolve: null | Function = null
-            const promise = new Promise((resolver) => resolve = resolver)
-            this.allJobsDone = {
+    private processed(processor: Processing<InputType, OutputType>) {
+        const processingIndex = this.processing.indexOf(processor)
+        if (processingIndex > -1) {
+            this.processing.splice(processingIndex, 1)
+        }
+        this.checkAllDone()
+        this.startNextJob()
+    }
+
+    private startNextJob () {
+        const { processor } = this.configuration;
+        const item = this.waiting.shift()
+        if (item) {
+            this.createCompletionTracker()
+            const processing: Processing<InputType, OutputType> = {
+                item,
+                promise: new Promise( (resolve) => resolve(processor(item)))
+            }
+            this.processing.push(processing)
+            processing.promise.finally(() => this.processed(processing))
+        }
+    }
+
+    private createCompletionTracker () {
+        if (!this.completionTracker) {
+            let resolve;
+            const promise = new Promise<void>((resolver) => {
+                resolve = resolver
+            })
+            this.completionTracker = {
                 resolve,
                 promise
             }
@@ -88,6 +119,6 @@ class Queue {
     }
 }
 
-export function queue(job: Function, configuration?: Partial<QueueConfiguration>) {
-    return new Queue(configuration).append(job)
+export function queue<InputType, OutputType>(item: InputType, configuration?: Partial<QueueConfiguration<InputType, OutputType>>) {
+    return new Queue(configuration).append(item)
 }
