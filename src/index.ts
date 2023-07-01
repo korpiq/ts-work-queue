@@ -119,6 +119,6 @@ export class Queue<InputType, OutputType> {
     }
 }
 
-export function queue<InputType, OutputType>(item: InputType, configuration?: Partial<QueueConfiguration<InputType, OutputType>>) {
-    return new Queue(configuration).append(item)
+export function queue<InputType, OutputType>(configuration?: Partial<QueueConfiguration<InputType, OutputType>>) {
+    return new Queue(configuration)
 }
