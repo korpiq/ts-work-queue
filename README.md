@@ -11,39 +11,44 @@ Hopefully easily usable configurable work queues for Typescript.
 import queue from 'ts-work-queue'
 
 const results: string[] = []
-const q = queue(() => results.push('this will run first'))
-q.queue(() => results.push('this will run after first'))
-await q.untilEmpty()
+const q = queue().append(() => results.push('this will run first'))
+q.append(() => results.push('this will run after first'))
+await q.allDone()
 // results = ['this will run first', 'this will run after first']
 ```
 
-### `queue(callable, [QueueConfiguration]): Queue`
+### `queue<InputType, OutputType>([QueueConfiguration<InputType, OutputType>]): Queue`
 
-Returns a new `Queue` object (with optional custom configuration) that runs `callable` as its first job.
+Returns a new `Queue` object with optional custom configuration.
 
 ### `class Queue`
 
 Jobs added to a `Queue` object will be run one after the other.
 
-#### `new Queue([QueueConfiguration]): Queue`
+#### `new Queue<InputType, OutputType>([QueueConfiguration<InputType, OutputType>]): Queue`
 
-Returns a new `Queue` that does nothing by itself.
+Returns a new `Queue` object with optional custom configuration.
 
 #### QueueConfiguration
 
 - `maxConcurrent` how many jobs may run concurrently; default is 1.
+- `processor` a function that takes an `InputType` parameter and returns `OutputType`. Will be run for each item added to the queue.
 
-#### `append(callable): Queue`
+#### `append(item: InputType): Queue`
 
-Adds given `callable` as a job to the end of the queue.
+Adds given item to the end of the queue.
 Starts running it if the queue is currently not running anything.
 Otherwise, each queued job will be run one after the other.
 
-#### `prepend(callable): Queue`
+#### `prepend(item: InputType): Queue`
 
-Adds given `callable` as a job to the beginning of the queue.
+Adds given item as a job to the beginning of the queue.
 Starts running it if the queue is currently not running anything.
 Otherwise, each queued job will be run one after the other.
+
+#### `isAllDone(): boolean`
+
+Returns a boolean indicating whether the queue is empty.
 
 #### `async allDone(): Promise<unknown>`
 
